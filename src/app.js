@@ -36,8 +36,10 @@ fs.readdirSync('./src/triggers')
   });
 
 if (chatOnlyMode) {
+  const chatOnlyCommands = ['chat', 'agent', 'agents'];
+
   commands.forEach((command, name) => {
-    if (name !== 'chat') {
+    if (!chatOnlyCommands.includes(name)) {
       command.active = false;
     }
   });

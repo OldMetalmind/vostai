@@ -57,11 +57,12 @@ const llmChatChannels = (process.env.LLM_ALLOWED_CHANNELS || '')
   .map(channel => channel.trim())
   .filter(channel => channel.length > 0);
 
-// Temporary operational switch: only !chat is active; no triggers, other
-// commands or scheduled jobs.
 const chatOnlyMode = (/true/i).test(process.env.LLM_CHAT_ONLY);
 
-// Terminal input for direct questions in the bot pane (no Discord roundtrip).
+const agentsEnabled = process.env.AGENTS_ENABLED === undefined
+  ? false
+  : (/true/i).test(process.env.AGENTS_ENABLED);
+
 const llmChatLocalInput = (/true/i).test(process.env.LLM_CHAT_LOCAL_INPUT);
 
 module.exports = {
@@ -74,5 +75,6 @@ module.exports = {
   llmChatEnabled,
   llmChatChannels,
   chatOnlyMode,
+  agentsEnabled,
   llmChatLocalInput,
 };

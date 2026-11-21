@@ -127,7 +127,7 @@ const message = async (client, msg) => {
     const args = msg.content.slice(prefix.length).split(" ");
     const commandName = args.shift().toLowerCase();
 
-    if (chatOnlyMode && commandName !== "chat") {
+    if (chatOnlyMode && !['chat', 'agent', 'agents'].includes(commandName)) {
       return;
     }
 
