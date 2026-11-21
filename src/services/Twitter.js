@@ -1,20 +1,58 @@
 const { TwitterApi } = require('twitter-api-v2');
 const { getFileContent } = require('../helpers');
 const { twitterKeys } = require('../../config/twitter');
-const { channels } = require('../../config/bot');
-const { db } = require('../database/models');
-const { sendMessageToChannel } = require('./Discord');
+
+const hasCredentials = (keys) => Boolean(
+  keys
+  && keys.consumer_key
+  && keys.consumer_secret
+  && keys.access_token
+  && keys.access_token_secret,
+);
+
+const warnDisabled = () => {
+  console.warn('Twitter desativado: credenciais não configuradas');
+};
+
+// Used when credentials are absent, so startup and jobs do not crash in
+// local/test environments. No credentials means no network calls.
+const disabledClient = {
+  v1: {
+    uploadMedia: async () => {
+      warnDisabled();
+      return null;
+    },
+  },
+  v2: {
+    tweet: async () => {
+      warnDisabled();
+      return { data: {} };
+    },
+  },
+  post: async () => {
+    warnDisabled();
+    return { data: {} };
+  },
+};
+
+const createClient = (account) => {
+  if (!hasCredentials(account.keys)) {
+    return null;
+  }
+
+  return new TwitterApi({
+    appKey: account.keys.consumer_key,
+    appSecret: account.keys.consumer_secret,
+    accessToken: account.keys.access_token,
+    accessSecret: account.keys.access_token_secret,
+  });
+};
 
 const twitterClients = twitterKeys.map((account) => ({
   reference: account.reference,
   screenName: account.screenName,
   fetchTweets: account.fetchTweets,
-  client: new TwitterApi({
-    appKey: account.keys.consumer_key,
-    appSecret: account.keys.consumer_secret,
-    accessToken: account.keys.access_token,
-    accessSecret: account.keys.access_token_secret,
-  }),
+  client: createClient(account),
 }));
 
 const defaultClientTwitter = twitterClients.find((element) => element.reference === 'main');
@@ -43,6 +81,7 @@ const vostEuTweets = {
 * @param {String} tweetId
 * @param {String} reference
 */
+// eslint-disable-next-line no-unused-vars
 const uploadThreadTwitter = async (tweetSeq, tweetId = '', reference) => {
   if (tweetSeq.length === 0) {
     return;
@@ -51,8 +90,13 @@ const uploadThreadTwitter = async (tweetSeq, tweetId = '', reference) => {
   const accountPos = twitterClients.findIndex((element) => element.reference === reference);
 
   const clientTwitter = accountPos < 0
-    ? twitterClients[0].client
+    ? twitterClients[0] && twitterClients[0].client
     : twitterClients[accountPos].client;
+
+  if (!clientTwitter) {
+    warnDisabled();
+    return;
+  }
 
   for(let i = 0; i < tweetSeq.length; i++){
     const tweetToSend = tweetSeq[i];
@@ -72,7 +116,7 @@ const uploadThreadTwitter = async (tweetSeq, tweetId = '', reference) => {
 
     const response = await clientTwitter.v2.tweet(params);
     if(response.data.errors){
-      console.log(response.data.errors);
+      console.warn(response.data.errors);
     }
   }
 };
@@ -161,13 +205,14 @@ const uploadThreadTwitter = async (tweetSeq, tweetId = '', reference) => {
 // };
 
 const tweetVostEu = async (tweetId) => {
+  // eslint-disable-next-line no-unused-vars
   const thread = vostEuTweets[tweetId];
 
   // uploadThreadTwitter(thread, null, 'europe');
 };
 
 module.exports = {
-  clientTwitter: defaultClientTwitter.client,
+  clientTwitter: (defaultClientTwitter && defaultClientTwitter.client) || disabledClient,
   uploadThreadTwitter,
   // getVostTweetsAndSendToDiscord,
   tweetVostEu,

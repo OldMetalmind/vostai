@@ -7,6 +7,7 @@ const sharp = require('sharp');
 const handle = bskyKeys.keys.bsky_handle;
 const password = bskyKeys.keys.bsky_password;
 const repohandle = bskyKeys.keys.bsky_repohandle;
+const hasCredentials = Boolean(handle && password && repohandle);
 let accessToken = null;
 
 // Function to authenticate and get a token
@@ -264,6 +265,11 @@ async function postToBluesky(message, imagePath, imageDes) {
 }
 
 async function sendPostsToBsky(messages) {
+  if (!hasCredentials) {
+    console.warn('[BSKY-DISABLED] Credenciais não configuradas; publicação ignorada');
+    return;
+  }
+
   console.log('[BSKY-BATCH] Starting batch post processing:', {
     messageCount: messages.length,
     timestamp: new Date().toISOString()
@@ -288,16 +294,20 @@ async function sendPostsToBsky(messages) {
   console.log('[BSKY-BATCH] Completed batch post processing');
 }
 
-(async () => {
-  try {
-    await authenticate(handle, password);
-  } catch (error) {
-    console.error('[BSKY-INIT-ERROR] Initial authentication failed:', {
-      error: error.message,
-      timestamp: new Date().toISOString()
-    });
-  }
-})();
+if (hasCredentials) {
+  (async () => {
+    try {
+      await authenticate(handle, password);
+    } catch (error) {
+      console.error('[BSKY-INIT-ERROR] Initial authentication failed:', {
+        error: error.message,
+        timestamp: new Date().toISOString()
+      });
+    }
+  })();
+} else {
+  console.warn('[BSKY-DISABLED] Credenciais não configuradas; autenticação ignorada');
+}
 
 module.exports = {
   sendPostsToBsky

@@ -90,7 +90,16 @@ O link para download ainda não está disponível`;
   });
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, "0.0.0.0", () => {
+  const server = app.listen(PORT, "0.0.0.0", () => {
     console.log(`🌐 Webhook server listening on port ${PORT}`);
+  });
+
+  server.on("error", (error) => {
+    if (error.code === "EADDRINUSE") {
+      console.warn(`⚠️ Port ${PORT} already in use; webhook server disabled`);
+      return;
+    }
+
+    console.error(error);
   });
 };

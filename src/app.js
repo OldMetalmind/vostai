@@ -1,10 +1,17 @@
 /* eslint-disable global-require */
-require('dotenv').config();
+const dotenv = require('dotenv');
+const dotenvExpand = require('dotenv-expand');
+const { initTelemetry } = require('./telemetry');
+
+dotenvExpand(dotenv.config());
+initTelemetry();
 
 const fs = require('fs');
 const Discord = require('discord.js');
 const Events = require('./events');
 const startHttpServer = require('./server/server');
+const { chatOnlyMode, llmChatLocalInput } = require('../config/bot');
+const { startLocalInput } = require('./events/localInput');
 
 const client = new Discord.Client();
 const commands = new Discord.Collection();
@@ -28,13 +35,29 @@ fs.readdirSync('./src/triggers')
     triggers.set(trigger.name, trigger);
   });
 
+if (chatOnlyMode) {
+  commands.forEach((command, name) => {
+    if (name !== 'chat') {
+      command.active = false;
+    }
+  });
+  triggers.clear();
+}
+
 client.commands = commands;
 client.triggers = triggers;
 client.cooldowns = cooldowns;
 
 client.once('ready', () => {
   Events.ready(client);
-  startHttpServer(client);
+
+  if (!chatOnlyMode) {
+    startHttpServer(client);
+  }
+
+  if (llmChatLocalInput) {
+    startLocalInput(client);
+  }
 });
 client.on('message', message => Events.message(client, message));
 

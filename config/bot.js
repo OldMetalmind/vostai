@@ -48,6 +48,22 @@ const cooldown = COOLDOWN.length === 0 ? 10 : COOLDOWN;
 
 const betaMode = (/true/i).test(process.env.BETA_MODE);
 
+const llmChatEnabled = process.env.LLM_CHAT_ENABLED === undefined
+  ? false
+  : (/true/i).test(process.env.LLM_CHAT_ENABLED);
+
+const llmChatChannels = (process.env.LLM_ALLOWED_CHANNELS || '')
+  .split(',')
+  .map(channel => channel.trim())
+  .filter(channel => channel.length > 0);
+
+// Temporary operational switch: only !chat is active; no triggers, other
+// commands or scheduled jobs.
+const chatOnlyMode = (/true/i).test(process.env.LLM_CHAT_ONLY);
+
+// Terminal input for direct questions in the bot pane (no Discord roundtrip).
+const llmChatLocalInput = (/true/i).test(process.env.LLM_CHAT_LOCAL_INPUT);
+
 module.exports = {
   prefix,
   channels,
@@ -55,4 +71,8 @@ module.exports = {
   roleLists,
   cooldown,
   betaMode,
+  llmChatEnabled,
+  llmChatChannels,
+  chatOnlyMode,
+  llmChatLocalInput,
 };
